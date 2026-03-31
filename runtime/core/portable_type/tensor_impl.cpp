@@ -40,7 +40,7 @@ ssize_t compute_numel(const TensorImpl::SizesType* sizes, ssize_t dim) {
         static_cast<ssize_t>(sizes[i]),
         i);
     ET_CHECK_MSG(
-        sizes[i] == 0 || numel <= SSIZE_MAX / sizes[i],
+        sizes[i] == 0 || numel <= (ssize_t)(SIZE_MAX / 2) / sizes[i],
         "Overflow computing numel: %zd * %zd would overflow ssize_t at dimension %zd",
         numel,
         static_cast<ssize_t>(sizes[i]),
