@@ -30,13 +30,22 @@ def load_and_quantize(args):
 
     Returns (model, config) ready for export.
     """
+    use_splitk = not getattr(args, "no_splitk", False)
     if args.prequantized:
-        return load_prequantized_model(args.prequantized, args.max_seq_len)
+        return load_prequantized_model(
+            args.prequantized,
+            args.max_seq_len,
+            use_splitk_decode=use_splitk,
+        )
 
     print("Loading model...")
     model, config = Qwen35MoE.from_hf_checkpoint(
         args.model_dir, max_seq_len=args.max_seq_len
     )
+    config.use_splitk_decode = use_splitk
+    for layer in model.layers:
+        if hasattr(layer.attn, "use_splitk_decode"):
+            layer.attn.use_splitk_decode = use_splitk
     model.eval()
     print(
         f"Model: {config.num_hidden_layers} layers, {config.hidden_size}d, "
@@ -51,12 +60,15 @@ def load_and_quantize(args):
     return model, config
 
 
-def load_prequantized_model(prequantized_dir, max_seq_len=4096):
+def load_prequantized_model(
+    prequantized_dir, max_seq_len=4096, use_splitk_decode=True
+):
     """Load a prequantized safetensors bundle into a model.
 
     Args:
         prequantized_dir: Directory containing model.safetensors and config.json.
         max_seq_len: Maximum sequence length for KV cache.
+        use_splitk_decode: Use split-K SDPA for decode instead of tiled SDPA.
 
     Returns:
         (model, config) ready for export.
@@ -70,6 +82,7 @@ def load_prequantized_model(prequantized_dir, max_seq_len=4096):
 
     config = Qwen35MoEConfig.from_hf_config(config_path)
     config.max_seq_len = max_seq_len
+    config.use_splitk_decode = use_splitk_decode
 
     print(f"Loading prequantized weights from {safetensors_path}...")
     state_dict = load_quantized_state_dict(safetensors_path)
@@ -556,6 +569,11 @@ def main():
         "--turboquant",
         action="store_true",
         help="Enable TurboQuant TQ4 KV cache compression (3.8x cache savings).",
+    )
+    parser.add_argument(
+        "--no-splitk",
+        action="store_true",
+        help="Disable split-K (flash-decoding) SDPA for decode; use tiled SDPA instead.",
     )
     args = parser.parse_args()
 
