@@ -100,7 +100,11 @@ _NEEDS_KV_EXPAND = {"flash", "efficient", "math"}
 # -- Shapes ------------------------------------------------------------------
 
 # Qwen3.5 MoE: B=1, H_q=16, H_kv=2, D=256
+<<<<<<< gasoonjia/flashdecoding-pp-async-softmax
 QWEN35_BASE = dict(B=1, H_q=16, H_kv=2, D=256)
+=======
+QWEN35_BASE = {"B": 1, "H_q": 16, "H_kv": 2, "D": 256}
+>>>>>>> main
 
 DECODE_SHAPES = [
     dict(**QWEN35_BASE, Lq=1, Lk=64),

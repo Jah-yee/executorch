@@ -278,14 +278,14 @@ class TestTritonSdpaSplitK(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.splitk(q, k, v, dropout_p=0.1)
 
-    def test_is_causal_rejected(self):
-        """is_causal=True should raise RuntimeError."""
+    def test_is_causal_accepted(self):
+        """is_causal=True is a no-op at L_q=1, should not raise."""
         B, H_q, H_kv, D = 1, 8, 2, 64
         q = torch.randn(B, H_q, 1, D, dtype=torch.bfloat16, device="cuda")
         k = torch.randn(B, H_kv, 64, D, dtype=torch.bfloat16, device="cuda")
         v = torch.randn(B, H_kv, 64, D, dtype=torch.bfloat16, device="cuda")
-        with self.assertRaises(RuntimeError):
-            self.splitk(q, k, v, is_causal=True)
+        out = self.splitk(q, k, v, is_causal=True)
+        self.assertEqual(out.shape, (B, H_q, 1, D))
 
     def test_hq_not_divisible_rejected(self):
         """H_q % H_kv != 0 should raise RuntimeError."""
