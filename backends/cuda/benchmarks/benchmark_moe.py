@@ -10,7 +10,7 @@ Benchmark the Triton fused MoE kernel against eager and torch.compile baselines.
 
 Measures latency across prompt lengths matching the Qwen3.5-35B-A3B model
 (hidden_size=2048, num_experts=256, top_k=8, intermediate_size=512,
-INT4 weight-only quantization with group_size=128).
+INT4 weight-only quantization with group_size=32).
 
 Usage:
     python benchmark_moe.py
@@ -21,7 +21,6 @@ import argparse
 from functools import partial
 
 import executorch.backends.cuda.triton.kernels  # noqa: F401 — registers triton ops
-
 import torch
 from triton.testing import do_bench
 
@@ -33,7 +32,7 @@ DEFAULTS = {
     "top_k": 8,
     "hidden_size": 2048,
     "intermediate_size": 512,
-    "group_size": 128,
+    "group_size": 32,
 }
 
 PROMPT_LENGTHS = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4095]
