@@ -14,14 +14,14 @@ from torch import nn
 class Conv1dModule(torch.nn.Module):
     def __init__(
         self,
-        bias: bool = True,
-        dilation: Union[int, tuple[int, int]] = 1,
         in_channels: int = 4,
-        kernel_size: Union[int, tuple[int, int]] = 3,
         out_channels: int = 8,
-        padding: Union[str, int, Collection[int]] = 0,
-        stride: Union[int, tuple[int, int]] = 2,
-        group: int = 1,
+        kernel_size: Union[int, tuple[int]] = 3,
+        stride: Union[int, tuple[int]] = 2,
+        padding: Union[str, int, tuple[int]] = 0,
+        dilation: Union[int, tuple[int]] = 1,
+        groups: int = 1,
+        bias: bool = True,
     ):
         super().__init__()
 
@@ -33,11 +33,42 @@ class Conv1dModule(torch.nn.Module):
             padding=padding,
             dilation=dilation,
             bias=bias,
-            groups=group,
+            groups=groups,
         )
 
     def forward(self, x):
         return self.conv(x)
+
+
+class ConvTranspose1dModule(torch.nn.Module):
+    def __init__(
+        self,
+        in_channels: int = 4,
+        out_channels: int = 8,
+        kernel_size: Union[int, tuple[int]] = 3,
+        stride: Union[int, tuple[int]] = 1,
+        padding: Union[int, tuple[int]] = 0,
+        output_padding: Union[int, tuple[int]] = 0,
+        groups: int = 1,
+        bias: bool = True,
+        dilation: Union[int, tuple[int]] = 1,
+    ):
+        super().__init__()
+
+        self.conv_transp = torch.nn.ConvTranspose1d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            output_padding=output_padding,
+            groups=groups,
+            bias=bias,
+            dilation=dilation,
+        )
+
+    def forward(self, x):
+        return self.conv_transp(x)
 
 
 class Conv2dModule(torch.nn.Module):
@@ -163,9 +194,9 @@ class ConvWithSigmoid(torch.nn.Module):
 
 
 class LinearModule(torch.nn.Module):
-    def __init__(self, bias: bool):
+    def __init__(self, bias: bool, in_features: int = 32, out_features: int = 16):
         super().__init__()
-        self.linear = torch.nn.Linear(32, 16, bias=bias)
+        self.linear = torch.nn.Linear(in_features, out_features, bias=bias)
 
     def forward(self, x):
         return self.linear(x)
@@ -348,12 +379,12 @@ class MaxPool2dConvModule(torch.nn.Module):
 
 
 class AvgPool2dModule(torch.nn.Module):
-    def __init__(self, count_include_pad, padding=0):
+    def __init__(self, count_include_pad, padding=0, kernel_size=3, stride=2):
         super().__init__()
 
         self.avg_pool = torch.nn.AvgPool2d(
-            kernel_size=3,
-            stride=2,
+            kernel_size=kernel_size,
+            stride=stride,
             padding=padding,
             count_include_pad=count_include_pad,
         )
@@ -425,11 +456,16 @@ class ReLUModule(torch.nn.Module):
 
 
 class Conv2dWithActivation(torch.nn.Module):
-    def __init__(self, activation: torch.nn.Module | Callable, in_channels: int = 3):
+    def __init__(
+        self,
+        activation: torch.nn.Module | Callable,
+        in_channels: int = 3,
+        out_channels: int = 64,
+    ):
         super().__init__()
 
         self.conv = torch.nn.Conv2d(
-            in_channels=in_channels, out_channels=64, kernel_size=(3, 3)
+            in_channels=in_channels, out_channels=out_channels, kernel_size=(3, 3)
         )
         self.activation = activation
 
@@ -592,13 +628,15 @@ class MulTensorModule(torch.nn.Module):
         return x * y
 
 
-class MulTensorConvModule(torch.nn.Module):
+class MaxPoolMulTensorModule(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv = Conv2dModule(padding=1, stride=1)
+        self.max_pool2d = torch.nn.MaxPool2d(
+            kernel_size=1
+        )  # No-op, but it enforces the channels first format.
 
     def forward(self, x, y):
-        x = self.conv(x)
+        x = self.max_pool2d(x)
         return x * y
 
 
@@ -620,14 +658,16 @@ class AddTensorModule(torch.nn.Module):
         return x + y
 
 
-class AddTensorConvModule(torch.nn.Module):
+class MaxPoolAddTensorModule(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv = Conv2dModule(padding=1, stride=1)
+        self.max_pool2d = torch.nn.MaxPool2d(
+            kernel_size=1
+        )  # No-op, but it enforces the channels first format.
 
-    def forward(self, x):
-        x = self.conv(x)
-        return x + x
+    def forward(self, x, y):
+        x = self.max_pool2d(x)
+        return x + y
 
 
 class AddTensorOneInputModule(torch.nn.Module):
@@ -648,13 +688,15 @@ class SubTensorModule(torch.nn.Module):
         return x - y
 
 
-class SubTensorConvModule(torch.nn.Module):
+class MaxPoolSubTensorModule(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv = Conv2dModule(padding=1, stride=1)
+        self.max_pool2d = torch.nn.MaxPool2d(
+            kernel_size=1
+        )  # No-op, but it enforces the channels first format.
 
     def forward(self, x, y):
-        x = self.conv(x)
+        x = self.max_pool2d(x)
         return x - y
 
 
