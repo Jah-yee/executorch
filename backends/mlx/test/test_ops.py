@@ -4681,15 +4681,17 @@ def _nan_input_fn(nan_frac: float = 0.3):
 
 
 def _inf_input_fn():
-    """Return a callable(shape, dtype) that generates inputs with some inf values."""
+    """Return a callable(shape, dtype) that generates inputs with some inf and nan values."""
 
     def fn(shape, dtype):
         x = torch.randn(shape, dtype=dtype)
-        # Insert ~20% +inf and ~10% -inf using non-overlapping masks
+        # Insert ~20% +inf, ~10% -inf, and ~10% NaN using non-overlapping masks
         mask_pos = torch.rand(shape) > 0.8  # ~20% -> +inf
         mask_neg = (~mask_pos) & (torch.rand(shape) > 0.9)  # ~10% of remaining -> -inf
+        mask_nan = (~mask_pos) & (~mask_neg) & (torch.rand(shape) > 0.9)  # ~10% of remaining -> NaN
         x[mask_pos] = float("inf")
         x[mask_neg] = float("-inf")
+        x[mask_nan] = float("nan")
         return (x,)
 
     return fn

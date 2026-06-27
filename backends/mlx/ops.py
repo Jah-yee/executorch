@@ -465,23 +465,24 @@ def _isinf_handler(P: MLXProgramBuilder, n: Node) -> Slot:
     require_kwargs(P.kwargs(n), set(), "aten.isinf")
     x = args[0]
 
-    # Create abs(x)
-    _, abs_tmp = P.make_tmp_slot()
-    P.emit(
-        AbsNode(
-            x=P.slot_to_tid(x),
-            out=P.slot_to_tid(abs_tmp),
-        )
-    )
-
     # Create inf constant (float32; EqualNode handles type promotion to match input dtype)
     inf_slot = emit_lifted_constant(P, float("inf"), torch.float32)
 
-    # Compare abs(x) == inf
+    # Create output buffer upfront and reuse it for intermediate results
     out = P.make_or_get_slot(n)
+
+    # Compute abs(x) in-place into out slot
+    P.emit(
+        AbsNode(
+            x=P.slot_to_tid(x),
+            out=P.slot_to_tid(out),
+        )
+    )
+
+    # Compare abs(x) == inf, reusing the out buffer
     P.emit(
         EqualNode(
-            a=P.slot_to_tid(abs_tmp),
+            a=P.slot_to_tid(out),
             b=P.slot_to_tid(inf_slot),
             out=P.slot_to_tid(out),
         )
